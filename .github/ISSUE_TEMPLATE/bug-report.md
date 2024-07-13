@@ -2,7 +2,7 @@
 name: Bug Report
 about: Report something that shouldn't seem like it should be happening.
 title: ''
-labels: ''
+labels: Bug Report
 assignees: ''
 
 ---
