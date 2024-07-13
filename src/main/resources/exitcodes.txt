@@ -1,0 +1,8 @@
+# 00xx: Standard exit codes
+0: Success
+1: Failure
+# 15xx: File-related exit codes
+1501: Failed to create configuration file
+1502: Failed to write to configuration file
+1503: Failed to read configuration file
+1504: Failed to locate configuration file

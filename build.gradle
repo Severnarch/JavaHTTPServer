@@ -1,0 +1,27 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation libs.guava
+}
+
+jar {
+    manifest { 
+        attributes "Main-Class": "io.github.severnarch.javahttpserver.JavaHTTPServer"
+    }
+}  
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(8)
+    }
+}
+
+application {
+    mainClass = 'io.github.severnarch.javahttpserver.JavaHTTPServer'
+}
