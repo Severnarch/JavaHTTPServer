@@ -35,8 +35,7 @@ Example B: If it says "`Encountered exception: java.lang.NullPointerException`",
 **Reproduction Steps:**
 1. ???
 2. ???
-3. ???<br>
-...
+3. ???
 <!--
 The steps you did in order to get this bug. If you can't find out what causes it, you can replace the instruction list with what you think might be happening or leave this field blank.
 -->
