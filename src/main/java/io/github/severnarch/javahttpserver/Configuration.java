@@ -20,6 +20,7 @@ public class Configuration {
 	private final String fileLocation;
 	private final String templateLocation;
 	private HashMap<String, String> configData;
+	private HashMap<String, String> templateData;
 	
 	public Configuration(String fileLocation, String templateLocation) {
 		Logger.info(String.format("Checking configuration file%s", Logger.Colour.YELLOW_BRIGHT.code),fileLocation,String.format("%swith template file%s",Logger.Colour.WHITE.code,Logger.Colour.YELLOW_BRIGHT.code),templateLocation);
@@ -50,21 +51,23 @@ public class Configuration {
 				}
 			}
 			try {
-				HashMap<String, String> templateValues = new HashMap<String, String>();
-				List<String> lines = new BufferedReader(new InputStreamReader(JavaHTTPServer.class.getResourceAsStream(templateLocation))).lines().collect(Collectors.toList());
-				for (String line : lines) {
-					if (line.startsWith("#")) {
-						continue;
+				if (templateLocation != null) {
+					this.templateData = new HashMap<String, String>();
+					List<String> lines = new BufferedReader(new InputStreamReader(JavaHTTPServer.class.getResourceAsStream(templateLocation))).lines().collect(Collectors.toList());
+					for (String line : lines) {
+						if (line.startsWith("#")) {
+							continue;
+						}
+						String[] sline = line.split("=");
+						if (sline.length == 2) {
+							this.templateData.put(sline[0].trim(), sline[1].trim());
+						} else if (sline.length == 1) {
+							this.templateData.put(sline[0].trim(), null);
+						}
 					}
-					String[] sline = line.split("=");
-					if (sline.length == 2) {
-						templateValues.put(sline[0].trim(), sline[1].trim());
-					} else if (sline.length == 1) {
-						templateValues.put(sline[0].trim(), null);
-					}
+					this.configData = this.templateData;
 				}
-				this.configData = templateValues;
-				lines = Files.readAllLines(Paths.get(fileLocation));
+				List<String> lines = Files.readAllLines(Paths.get(fileLocation));
 				for (String line : lines) {
 					if (line.startsWith("#")) {
 						continue;
@@ -73,7 +76,7 @@ public class Configuration {
 					if (sline.length == 2) {
 						this.configData.put(sline[0].trim(), sline[1].trim());
 					} else if (sline.length == 1 && templateLocation != null) {
-						this.configData.put(sline[0].trim(), templateValues.get(sline[0].trim()));
+						this.configData.put(sline[0].trim(), templateData.get(sline[0].trim()));
 					}
 				}
 				String[] fileDir = fileLocation.replaceAll("\\\\","/").split("/");
@@ -93,4 +96,18 @@ public class Configuration {
 		}
 	}
 	public Configuration(String fileLocation) {this(fileLocation, null);}
+
+	public String get(String key) {
+		String[] fileDir = fileLocation.replaceAll("\\\\","/").split("/");
+		String fileName = fileDir[fileDir.length - 1];
+		if (this.configData.containsKey(key)) {
+			return this.configData.get(key);
+		} else if (this.templateData.containsKey(key)) {
+			Logger.warn(String.format("Key '%s%s%s' does not exist in configuration '%s%s%s', using value from template.",Logger.Colour.YELLOW_BRIGHT.code,key,Logger.Colour.YELLOW.code,Logger.Colour.YELLOW_BRIGHT.code,fileName,Logger.Colour.YELLOW.code));
+			return this.templateData.get(key);
+		} else {
+			Logger.error(String.format("Key '%s%s%s' does not exist in configuration '%s%s%s' nor its template!",Logger.Colour.YELLOW_BRIGHT.code,key,Logger.Colour.RED.code,Logger.Colour.YELLOW_BRIGHT.code,fileName,Logger.Colour.RED.code));
+			return null;
+		}
+	}
 }
