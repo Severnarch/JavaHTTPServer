@@ -4,7 +4,7 @@
 ╠ [Obtaining the Executable](#obtaining-the-executable)<br>
 ║ ╠ [GitHub Releases](#github-releases)<br>
 ║ ╚ [Source Building](#source-building)<br>
-╠ [Next Steps](#next-steps)
+╚ [Next Steps](#next-steps)
 ## Requirements
 | Software                                             | Version |
 | ---------------------------------------------------- | -------:|
