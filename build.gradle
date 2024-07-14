@@ -6,10 +6,6 @@ repositories {
     mavenCentral()
 }
 
-dependencies {
-    implementation libs.guava
-}
-
 jar {
     manifest { 
         attributes "Main-Class": "io.github.severnarch.javahttpserver.JavaHTTPServer"

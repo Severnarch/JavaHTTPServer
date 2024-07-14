@@ -1,7 +1,5 @@
 package io.github.severnarch.javahttpserver;
 
-import com.google.common.collect.Lists;
-
 import io.github.severnarch.javahttpserver.Configuration;
 import io.github.severnarch.javahttpserver.Logger;
 
@@ -19,16 +17,18 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class JavaHTTPServer {
-	public final static String JHS_Version = "0.0.0";
+	public final static String JHS_Version = "1.0.0";
 	
 	private static File rootDirectory;
 	private static Configuration serverConfig;
 	private static ServerSocket server;
+	private static Boolean hasShutdownHookRan = false;
 
 	public static void main(String[] args) {
 		rootDirectory = new File(System.getProperty("user.dir"));
@@ -41,6 +41,7 @@ public class JavaHTTPServer {
 		Logger.setup();
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			try {
+				hasShutdownHookRan = true;
 				stop(0);
 			} catch (Exception exc) {
 				Logger.error("Exception in shutdown hook:",exc);
@@ -107,7 +108,8 @@ public class JavaHTTPServer {
 										files = files + "<li style='list-style-type:\"&#128196;\"'><a href='"+file.getName()+"'>"+file.getName()+"</a></li>";
 									}
 								}
-								for (String dir : Lists.reverse(dirs)) {
+								Collections.reverse(dirs);
+								for (String dir : dirs) {
 									files = "<li style='list-style-type:\"&#128193;\"'><a href='"+dir+"/'>"+dir+"/</a></li>" + files;
 								}
 								responseBody = "<style>a {text-decoration:none;color:black;}</style><title>"+location+"</title><h1>"+location+"</h1><hr><ul>"+files+"</ul>";
@@ -146,7 +148,9 @@ public class JavaHTTPServer {
 		} catch (Exception exc) {
 			Logger.error(String.format("Encountered exception:%s",Logger.Colour.YELLOW_BRIGHT.code),exc);
 		}
-		stop(0);
+		if (!hasShutdownHookRan) {
+			stop(0);
+		}
 	}
 
 	public static File getRootDirectory() {
