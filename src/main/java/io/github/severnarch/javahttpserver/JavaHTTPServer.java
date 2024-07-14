@@ -116,11 +116,13 @@ public class JavaHTTPServer {
 							} else {
 								if (new File(queriedFile.getAbsolutePath()+"/index.html").exists()) {
 									responseCode = "200 OK";
+									responseType = "text/html";
 								}
 								responseBody = String.join("\n", Files.readAllLines(Paths.get(queriedFile.getAbsolutePath()+"/index.html")));
 							}
 						}
 					} else {
+						responseType = "text/html";
 						File notFoundFile = new File(rootDirectory.getAbsolutePath()+"/"+serverConfig.get("mirrorDirectory")+"/.special/404.html");
 						if (notFoundFile.exists()) {
 							responseBody = String.join("\n", Files.readAllLines(Paths.get(notFoundFile.getAbsolutePath())));
