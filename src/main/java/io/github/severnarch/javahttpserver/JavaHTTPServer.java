@@ -1,5 +1,7 @@
 package io.github.severnarch.javahttpserver;
 
+import com.google.common.collect.Lists;
+
 import io.github.severnarch.javahttpserver.Configuration;
 import io.github.severnarch.javahttpserver.Logger;
 
@@ -16,6 +18,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -50,6 +53,9 @@ public class JavaHTTPServer {
 		}
 		Logger.info(String.format("JavaHTTPServer version:%s",Logger.Colour.YELLOW_BRIGHT.code),JHS_Version);
 		serverConfig = new Configuration(rootDirectory.getAbsolutePath()+"\\configs\\server.cfg", "/defaults/server.cfg");
+		while (!new File(rootDirectory.getAbsolutePath()+"/"+serverConfig.get("mirrorDirectory")+"/").exists()) {
+			new File(rootDirectory.getAbsolutePath()+"/"+serverConfig.get("mirrorDirectory")+"/").mkdir();
+		}
 		try {
 			server = new ServerSocket(Integer.valueOf(serverConfig.get("port")), Integer.valueOf(serverConfig.get("maxQueueLength")), InetAddress.getByName(serverConfig.get("address")));
 			Logger.info(String.format("Server started on%s %s:%s",Logger.Colour.YELLOW_BRIGHT.code,serverConfig.get("address"),serverConfig.get("port")));
@@ -63,14 +69,42 @@ public class JavaHTTPServer {
 				clientMethod = largs[0];
 				location = largs[1];
 				String responseCode = "404 Not Found";
-				String responseType = "text/html";
+				String responseType = "text/plain";
 				String responseBody = "";
 				while ("\r\n".equals(in.readLine())); 
 				try {
 					File queriedFile = new File(rootDirectory.getAbsolutePath()+"/"+serverConfig.get("mirrorDirectory")+location);
 					if (queriedFile.exists()) {
-						responseCode = "200 OK";
-						responseBody = String.join("\n", Files.readAllLines(Paths.get(queriedFile.getAbsolutePath())));
+						if (!location.endsWith("/")) {
+							String[] fileDir = location.split("/");
+							String fileName = fileDir[fileDir.length - 1];
+							responseCode = "200 OK";
+							responseBody = String.join("\n", Files.readAllLines(Paths.get(queriedFile.getAbsolutePath())));
+						} else {
+							if (Boolean.valueOf(serverConfig.get("showFilesInDirectories")) == true) {
+								responseCode = "200 OK";
+								responseType = "text/html";
+								String files = "";
+								List<String> dirs = new ArrayList();
+								dirs.add("..");
+								for (File file : queriedFile.listFiles()) {
+									if (file.isDirectory()) {
+										dirs.add(file.getName());
+									} else {
+										files = files + "<li style='list-style-type:\"&#128196;\"'><a href='"+file.getName()+"'>"+file.getName()+"</a></li>";
+									}
+								}
+								for (String dir : Lists.reverse(dirs)) {
+									files = "<li style='list-style-type:\"&#128193;\"'><a href='"+dir+"/'>"+dir+"/</a></li>" + files;
+								}
+								responseBody = "<style>a {text-decoration:none;color:black;}</style><title>"+location+"</title><h1>"+location+"</h1><hr><ul>"+files+"</ul>";
+							} else {
+								if (new File(queriedFile.getAbsolutePath()+"/index.html").exists()) {
+									responseCode = "200 OK";
+								}
+								responseBody = String.join("\n", Files.readAllLines(Paths.get(queriedFile.getAbsolutePath()+"/index.html")));
+							}
+						}
 					} else {
 						File notFoundFile = new File(rootDirectory.getAbsolutePath()+"/"+serverConfig.get("mirrorDirectory")+"/.special/404.html");
 						if (notFoundFile.exists()) {
@@ -79,10 +113,12 @@ public class JavaHTTPServer {
 							responseBody = "<title>404 Not Found</title><h1>404</h1><h2>Not Found</h2>";
 						}
 					}
+				} catch (java.nio.file.NoSuchFileException exc) {
+					responseBody = "<title>404 Not Found</title><h1>404</h1><h2>Not Found</h2>";
 				} catch (Exception exc) {
 					responseCode = "500 Internal Server Error";
-					responseBody = "<title>500 Internal Server Error</title><h1>500</h1><h2>Internal Server Error</h2><p>"+exc.getClass()+"</p>";
-					Logger.error("Exception encountered:",exc);
+					responseBody = "<title>500 Internal Server Error</title><h1>500</h1><h2>Internal Server Error</h2><p>"+exc.getClass()+"<br>See logs for more information.</p>";
+					Logger.error(String.format("Encountered exception:%s",Logger.Colour.YELLOW_BRIGHT.code),exc);
 				}
 				Logger.info(String.format("Request from %s%s%s for %s%s%s with method %s%s%s received as %s%s",Logger.Colour.YELLOW_BRIGHT.code,client.getRemoteSocketAddress().toString(),Logger.Colour.WHITE.code,Logger.Colour.YELLOW_BRIGHT.code,location,Logger.Colour.WHITE.code,Logger.Colour.YELLOW_BRIGHT.code,clientMethod,Logger.Colour.WHITE.code,Logger.Colour.YELLOW_BRIGHT.code,responseCode));
 				out.println("HTTP/1.1 "+responseCode);
