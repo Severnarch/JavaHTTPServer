@@ -78,6 +78,19 @@ public class JavaHTTPServer {
 						if (!location.endsWith("/")) {
 							String[] fileDir = location.split("/");
 							String fileName = fileDir[fileDir.length - 1];
+							String[] fileArgs = fileName.split("\\.");
+							if (fileArgs.length > 1) {
+								String extension = fileArgs[fileArgs.length - 1];
+								List<String> lines = new BufferedReader(new InputStreamReader(JavaHTTPServer.class.getResourceAsStream("/mimetypes.txt"))).lines().collect(Collectors.toList());
+								for (String line : lines) {
+									String[] sline = line.split(" ");
+									if (sline[0].equals("."+extension)) {
+										responseType = sline[1];
+										break;
+									}
+								}
+
+							}
 							responseCode = "200 OK";
 							responseBody = String.join("\n", Files.readAllLines(Paths.get(queriedFile.getAbsolutePath())));
 						} else {
