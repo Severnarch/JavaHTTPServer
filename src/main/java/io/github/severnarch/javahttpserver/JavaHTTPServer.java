@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class JavaHTTPServer {
-	public final static String JHS_Version = "1.0.0";
+	public final static String JHS_Version = "1.0.1";
 	
 	private static File rootDirectory;
 	private static Configuration serverConfig;
