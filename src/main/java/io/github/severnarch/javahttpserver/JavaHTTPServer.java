@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class JavaHTTPServer {
-	public final static String JHS_Version = "1.0.1";
+	public final static String JHS_Version = "1.0.2";
 	
 	private static File rootDirectory;
 	private static Configuration serverConfig;
@@ -147,6 +147,8 @@ public class JavaHTTPServer {
 				out.println(responseBody);
 				out.flush();
 			}
+		} catch (java.net.SocketException exc) {
+			Logger.info("Server stopped.");
 		} catch (Exception exc) {
 			Logger.error(String.format("Encountered exception:%s",Logger.Colour.YELLOW_BRIGHT.code),exc);
 		}
@@ -189,6 +191,7 @@ public class JavaHTTPServer {
 		} catch (Exception exc) {
 			Logger.warn(String.format("Unable to get exit code definition:%s",Logger.Colour.YELLOW_BRIGHT.code),exc);
 		}
+		System.out.println(Logger.Colour.RESET.code);
 		System.exit(code);
 	}
 }
