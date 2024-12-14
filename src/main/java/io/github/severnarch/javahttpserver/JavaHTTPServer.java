@@ -1,11 +1,7 @@
 package io.github.severnarch.javahttpserver;
 
-import io.github.severnarch.javahttpserver.Configuration;
-import io.github.severnarch.javahttpserver.Logger;
-
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -18,16 +14,15 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class JavaHTTPServer {
-	public final static String JHS_Version = "1.0.2";
+	public final static String JHS_Version = "1.0.3";
 	
 	private static File rootDirectory;
-	private static Configuration serverConfig;
-	private static ServerSocket server;
+    private static ServerSocket server;
 	private static Boolean hasShutdownHookRan = false;
 
 	public static void main(String[] args) {
@@ -37,7 +32,7 @@ public class JavaHTTPServer {
 			if (!rootDirectory.isDirectory()) {
 				rootDirectory = new File(rootDirectory.getParent());
 			}	
-		} catch (java.net.URISyntaxException exc) {}
+		} catch (java.net.URISyntaxException ignored) {}
 		Logger.setup();
 		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
 			try {
@@ -47,34 +42,38 @@ public class JavaHTTPServer {
 				Logger.error("Exception in shutdown hook:",exc);
 			}
 		}));
-		if (rootDirectory.getAbsolutePath() == System.getProperty("user.dir")) {
+		if (rootDirectory.getAbsolutePath().equals(System.getProperty("user.dir"))) {
 			Logger.warn("Unable to find the .jar file's location, using current working directory for configurations.");
 		} else {
 			Logger.info(String.format("JAR file located:%s",Logger.Colour.YELLOW_BRIGHT.code), rootDirectory.getAbsolutePath());
 		}
 		Logger.info(String.format("JavaHTTPServer version:%s",Logger.Colour.YELLOW_BRIGHT.code),JHS_Version);
-		serverConfig = new Configuration(rootDirectory.getAbsolutePath()+"\\configs\\server.cfg", "/defaults/server.cfg");
-		while (!new File(rootDirectory.getAbsolutePath()+"/"+serverConfig.get("mirrorDirectory")+"/").exists()) {
-			new File(rootDirectory.getAbsolutePath()+"/"+serverConfig.get("mirrorDirectory")+"/").mkdir();
+        Configuration serverConfig = new Configuration(rootDirectory.getAbsolutePath() + "/configs/server.cfg", "/defaults/server.cfg");
+		while (!new File(rootDirectory.getAbsolutePath()+"/"+ serverConfig.get("mirrorDirectory")+"/").exists()) {
+			boolean created = new File(rootDirectory.getAbsolutePath()+"/"+ serverConfig.get("mirrorDirectory")+"/").mkdir();
+			if (!created) {
+				JavaHTTPServer.stop(1505);
+			}
 		}
 		try {
-			server = new ServerSocket(Integer.valueOf(serverConfig.get("port")), Integer.valueOf(serverConfig.get("maxQueueLength")), InetAddress.getByName(serverConfig.get("address")));
-			Logger.info(String.format("Server started on%s %s:%s",Logger.Colour.YELLOW_BRIGHT.code,serverConfig.get("address"),serverConfig.get("port")));
-			while (true) {
+			server = new ServerSocket(Integer.parseInt(serverConfig.get("port")), Integer.parseInt(serverConfig.get("maxQueueLength")), InetAddress.getByName(serverConfig.get("address")));
+			Logger.info(String.format("Server started on%s %s:%s",Logger.Colour.YELLOW_BRIGHT.code, serverConfig.get("address"), serverConfig.get("port")));
+			while (!hasShutdownHookRan) {
 				Socket client = server.accept();
 				PrintWriter out = new PrintWriter(client.getOutputStream(), true);
 				BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-				String clientMethod = "GET";
-				String location = "/";
+				String clientMethod;
+				String location;
 				String[] largs = in.readLine().split(" ");
 				clientMethod = largs[0];
 				location = largs[1];
 				String responseCode = "404 Not Found";
 				String responseType = "text/plain";
-				String responseBody = "";
-				while ("\r\n".equals(in.readLine())); 
+				String responseBody;
+				//noinspection ALL ; this skips any first empty lines of HTTP requests
+                while ("\r\n".equals(in.readLine())) {}
 				try {
-					File queriedFile = new File(rootDirectory.getAbsolutePath()+"/"+serverConfig.get("mirrorDirectory")+location);
+					File queriedFile = new File(rootDirectory.getAbsolutePath()+"/"+ serverConfig.get("mirrorDirectory")+location);
 					if (queriedFile.exists()) {
 						if (!location.endsWith("/")) {
 							String[] fileDir = location.split("/");
@@ -82,7 +81,7 @@ public class JavaHTTPServer {
 							String[] fileArgs = fileName.split("\\.");
 							if (fileArgs.length > 1) {
 								String extension = fileArgs[fileArgs.length - 1];
-								List<String> lines = new BufferedReader(new InputStreamReader(JavaHTTPServer.class.getResourceAsStream("/mimetypes.txt"))).lines().collect(Collectors.toList());
+								List<String> lines = new BufferedReader(new InputStreamReader(Objects.requireNonNull(JavaHTTPServer.class.getResourceAsStream("/mimetypes.txt")))).lines().collect(Collectors.toList());
 								for (String line : lines) {
 									String[] sline = line.split(" ");
 									if (sline[0].equals("."+extension)) {
@@ -95,22 +94,22 @@ public class JavaHTTPServer {
 							responseCode = "200 OK";
 							responseBody = String.join("\n", Files.readAllLines(Paths.get(queriedFile.getAbsolutePath())));
 						} else {
-							if (Boolean.valueOf(serverConfig.get("showFilesInDirectories")) == true) {
+							if (Boolean.parseBoolean(serverConfig.get("showFilesInDirectories"))) {
 								responseCode = "200 OK";
 								responseType = "text/html";
-								String files = "";
-								List<String> dirs = new ArrayList();
+								StringBuilder files = new StringBuilder();
+								List<String> dirs = new ArrayList<>();
 								dirs.add("..");
-								for (File file : queriedFile.listFiles()) {
+								for (File file : Objects.requireNonNull(queriedFile.listFiles())) {
 									if (file.isDirectory()) {
 										dirs.add(file.getName());
 									} else {
-										files = files + "<li style='list-style-type:\"&#128196;\"'><a href='"+file.getName()+"'>"+file.getName()+"</a></li>";
+										files.append("<li style='list-style-type:\"&#128196;\"'><a href='").append(file.getName()).append("'>").append(file.getName()).append("</a></li>");
 									}
 								}
 								Collections.reverse(dirs);
 								for (String dir : dirs) {
-									files = "<li style='list-style-type:\"&#128193;\"'><a href='"+dir+"/'>"+dir+"/</a></li>" + files;
+									files.insert(0, "<li style='list-style-type:\"&#128193;\"'><a href='" + dir + "/'>" + dir + "/</a></li>");
 								}
 								responseBody = "<style>a {text-decoration:none;color:black;}</style><title>"+location+"</title><h1>"+location+"</h1><hr><ul>"+files+"</ul>";
 							} else {
@@ -123,7 +122,7 @@ public class JavaHTTPServer {
 						}
 					} else {
 						responseType = "text/html";
-						File notFoundFile = new File(rootDirectory.getAbsolutePath()+"/"+serverConfig.get("mirrorDirectory")+"/.special/404.html");
+						File notFoundFile = new File(rootDirectory.getAbsolutePath()+"/"+ serverConfig.get("mirrorDirectory")+"/.special/404.html");
 						if (notFoundFile.exists()) {
 							responseBody = String.join("\n", Files.readAllLines(Paths.get(notFoundFile.getAbsolutePath())));
 						} else {
@@ -173,13 +172,13 @@ public class JavaHTTPServer {
 		Logger.info(String.format("JHS stopped with exit code%s",Logger.Colour.YELLOW_BRIGHT.code),code);
 		try {
 			int foundDef = 0;
-			List<String> lines = new BufferedReader(new InputStreamReader(JavaHTTPServer.class.getResourceAsStream("/exitcodes.txt"))).lines().collect(Collectors.toList());
+			List<String> lines = new BufferedReader(new InputStreamReader(Objects.requireNonNull(JavaHTTPServer.class.getResourceAsStream("/exitcodes.txt")))).lines().collect(Collectors.toList());
 			for (String line : lines) {
 				if (line.startsWith("#")) {
 					continue;
 				}
 				String[] sline = line.split(": ");
-				if (Integer.valueOf(sline[0]) == code) {
+				if (Integer.parseInt(sline[0]) == code) {
 					Logger.info(String.format("Exit code definition:%s",Logger.Colour.YELLOW_BRIGHT.code),sline[1]);
 					foundDef = 1;
 					break;

@@ -1,7 +1,5 @@
 package io.github.severnarch.javahttpserver;
 
-import io.github.severnarch.javahttpserver.JavaHTTPServer;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -17,13 +15,16 @@ public class Logger {
 	public static void setup() {
 		System.out.println("Setting up logger...");
 		File rootDirectory = JavaHTTPServer.getRootDirectory();
-		if (!new File(rootDirectory.getAbsolutePath()+"\\logs").exists()) {
+		if (!new File(rootDirectory.getAbsolutePath()+"/logs").exists()) {
 			System.out.println("Attempting to create logs directory...");
-			new File(rootDirectory.getAbsolutePath()+"\\logs").mkdir();
+			boolean success = new File(rootDirectory.getAbsolutePath()+"/logs").mkdir();
+			if (!success) {
+				warn("Failed to create log directory.");
+			}
 		}
-		if (new File(rootDirectory.getAbsolutePath()+"\\logs").exists()) {
+		if (new File(rootDirectory.getAbsolutePath()+"/logs").exists()) {
 			System.out.println("Log directory exists.");
-			logFile = new File(rootDirectory.getAbsolutePath()+"\\logs\\"+new SimpleDateFormat("dd'-'MM'-'yyyy'_'HH'-'mm'-'ss'_'z'.txt'").format(Calendar.getInstance().getTime()));
+			logFile = new File(rootDirectory.getAbsolutePath()+"/logs/"+new SimpleDateFormat("dd'-'MM'-'yyyy'_'HH'-'mm'-'ss'_'z'.txt'").format(Calendar.getInstance().getTime()));
 			try {
 				if (logFile.createNewFile()) {
 					filelogEnabled = true;
@@ -37,6 +38,7 @@ public class Logger {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	public enum Colour {
 		RESET("\033[0m"),
 		BLACK("\033[0;30m"),
@@ -68,7 +70,7 @@ public class Logger {
 	}
 	
 	private static void writeLogFile(String line) {
-		if (filelogEnabled == true) {
+		if (filelogEnabled) {
 			try {
 				Files.write(
       					Paths.get(logFile.getAbsolutePath()), 
@@ -82,29 +84,29 @@ public class Logger {
 	}
 
 	public static void info(Object... args) {
-		String content = "";
+		StringBuilder content = new StringBuilder();
 		for (Object arg : args) {
-			content = content + " " + String.valueOf(arg);
+			content.append(" ").append(arg);
 		}
-		String logLine = timestampPrefix()+String.format("[%sINFO   %s]%s ", Colour.WHITE.code, Colour.BLACK_BRIGHT.code, Colour.WHITE.code)+content.trim();
+		String logLine = timestampPrefix()+String.format("[%sINFO   %s]%s ", Colour.WHITE.code, Colour.BLACK_BRIGHT.code, Colour.WHITE.code)+ content.toString().trim();
 		writeLogFile(logLine);
 		System.out.println(logLine);
 	}
 	public static void warn(Object... args) {
-		String content = "";
+		StringBuilder content = new StringBuilder();
 		for (Object arg : args) {
-			content = content + " " + String.valueOf(arg);
+			content.append(" ").append(arg);
 		}
-		String logLine = timestampPrefix()+String.format("[%sWARNING%s]%s ", Colour.YELLOW.code, Colour.BLACK_BRIGHT.code, Colour.YELLOW.code)+content.trim();
+		String logLine = timestampPrefix()+String.format("[%sWARNING%s]%s ", Colour.YELLOW.code, Colour.BLACK_BRIGHT.code, Colour.YELLOW.code)+ content.toString().trim();
 		writeLogFile(logLine);
 		System.out.println(logLine);
 	}
 	public static void error(Object... args) {
-		String content = "";
+		StringBuilder content = new StringBuilder();
 		for (Object arg : args) {
-			content = content + " " + String.valueOf(arg);
+			content.append(" ").append(arg);
 		}
-		String logLine = timestampPrefix()+String.format("[%sERROR  %s]%s ", Colour.RED.code, Colour.BLACK_BRIGHT.code, Colour.RED.code)+content.trim();
+		String logLine = timestampPrefix()+String.format("[%sERROR  %s]%s ", Colour.RED.code, Colour.BLACK_BRIGHT.code, Colour.RED.code)+ content.toString().trim();
 		writeLogFile(logLine);
 		System.out.println(logLine);
 	}

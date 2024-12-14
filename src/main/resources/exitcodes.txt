@@ -6,3 +6,4 @@
 1502: Failed to write to configuration file
 1503: Failed to read configuration file
 1504: Failed to locate configuration file
+1505: Failed to create mirror directory
